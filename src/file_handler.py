@@ -4,6 +4,10 @@ import json
 from typing import Literal, Union
 
 
+class EmptyDataError(Exception):
+    pass
+
+
 class Parameter(BaseModel):
     """Schema representing the parameter type"""
     type: Literal["string", "integer", "number", "boolean"]
@@ -74,7 +78,7 @@ class FileLoader:
         """Loads and validates function definitions form a JSON file"""
         func_lst = load_json(funcs_path)
         if not func_lst:
-            raise ValidationError("Function definitions file is empty")
+            raise EmptyDataError("Function definitions file is empty")
         for i, func in enumerate(func_lst):
             try:
                 self.func_definitions.append(Function.model_validate(func))
@@ -92,7 +96,7 @@ class FileLoader:
         """Loads and validates user prompts from a JSON file"""
         prompt_lst = load_json(input_path)
         if not prompt_lst:
-            raise ValidationError("Function calling tests file is empty.")
+            raise EmptyDataError("Function calling tests file is empty.")
         for i, prompt in enumerate(prompt_lst):
             try:
                 self.prompts.append(Prompt.model_validate(prompt))

@@ -86,7 +86,6 @@ class VocabConstraints:
             "integer": (self.int_allowed, (',', '\n')),
         }
 
-
     def _get_vocab(self, llm: Small_LLM_Model) -> dict[str, int]:
         """loads model vocab from disk"""
         path = llm.get_path_to_vocab_file()
@@ -194,5 +193,106 @@ class FunctionCallGenerator:
         functions: list[Function],
         llm: Small_LLM_Model
     ) -> None:
-        self.functions = function
+        self.functions = functions
         self.llm = llm
+        self.logger = GenerationLogger()
+        self.constraints = VocabConstraints(llm)
+        self.decoder = ConstrainedDecoder(llm, self.logger)
+        self.func_trie: Trie = self._gen_func_trie(self.functions)
+        self.param_tries: dict[str, dict[str, Trie]] = {}
+        self.bool_trie = Trie()
+        for val in ("false", "true"):
+            self.decoder.add_to_trie(self.bool_trie, val)
+        self.curr_func: Function
+        self.remaining_params: list[str] = []
+
+    def _gen_func_trie(self, functions: list[Function]) -> Trie:
+        """makes a trie containing function names"""
+        func_trie = Trie()
+        for func in functions:
+            self.decoder.add_to_trie(func_trie, func.name)
+        return func_trie
+
+    def _get_param_trie(self, func_name: str, param_name: str) -> Trie:
+        """returns trie for a function parameter name"""
+        if func_name not in self.param_tries:
+            self.param_tries[func_name] = {}
+        if param_name not in self.param_tries[func_name]:
+            param_trie = Trie()
+            self.decoder.add_to_trie(param_trie, param_name)
+            self.param_tries[func_name][param_name] = param_trie
+        return self.param_tries[func_name][param_name]
+
+    def _gen_func_name(self) -> str:
+        """generates a function name"""
+        func_name_ids = self.decoder.generate_from_trie(self.func_trie)
+        return self.llm.decode(func_name_ids)
+
+    def _gen_param_name(self) -> str:
+        """generates next parameter name"""
+        next_param = self.remaining_params[0]
+        param_trie = self._get_param_trie(self.curr_func.name, next_param)
+        param_name_ids = self.decoder.generate_from_trie(param_trie)
+        self.remaining_params.remove(next_param)
+        return self.llm.decode(param_name_ids)
+
+    def _gen_param_value(self, p_type: str) -> str:
+        """generates a parameter value for a given tyoe"""
+        if p_type == "boolean":
+            param_val_ids = self.decoder.generate_from_trie(self.bool_trie)
+            return self.llm.decode(param_val_ids)
+        else:
+            allowed, stop_chars = self.constraints.gen_configs[p_type]
+
+            param_val_ids = self.decoder.generate_from_mask(
+                allowed,
+                stop_chars
+            )
+            return self.llm.decode(param_val_ids)
+
+    def run(self, user_prompt: str) -> CallResult:
+        """makes a function call for a user prompt"""
+        prompter = PromptBuilder()
+        prompt = prompter. make_prompt(self.functions, user_prompt)
+        self.decoder.input_ids = self.llm.encode(prompt)[0].tolist()
+        self.logger.prompt(user_prompt)
+        self.decoder.inject('{\n  "name": "')
+        func_name = self._gen_func_name()
+        params: dict[str, Union[str, int, float, bool]] = {}
+
+        if func_name == "fn_none_found":
+            self.decoder.inject('",\n  "parameters": {}\n}')
+            return CallResult(
+                prompt=user_prompt,
+                name=func_name,
+                parmeters=params
+            )
+        self.decoder.inject('",\n  "parameters": {\n')
+
+        for func in self.functions:
+            if func_name == func.name:
+                self.curr_func = func
+                self.remaining_params = list(func.parameters.keys())
+
+        while self.remaining_params:
+            self.decoder.inject('    "')
+
+            p_name = self._gen_param_name()
+            p_type = self.curr_func.parameters[p_name].type
+            is_num = p_type in {'number', 'integer'}
+            self.decoder.inject('": ' if is_num else '": "')
+
+            p_value = self._gen_param_value(p_type)
+            converted_val: str | int | float | bool = to_type(p_type, p_value)
+            params[p_name] = converted_val
+
+            if self.remaining_params:
+                self.decoder.inject(',\n' if is_num else '",\n')
+            else:
+                self.decoder.inject('\n  }\n}' if is_num else '"\n  }\n}')
+
+        return CallResult(
+            prompt=user_prompt,
+            name=func_name,
+            parameters=params
+        )

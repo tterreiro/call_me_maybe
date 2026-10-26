@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from pathlib import Path
 import argparse
 from llm_sdk import Small_LLM_Model
@@ -8,18 +9,28 @@ import json
 
 
 def main() -> None:
-    """runs the function calling pipeline"""
+    """
+    Parse command line flags, execute generation pipeline, and save outputs.
+
+    Raises:
+        EmptyDataError: Handled internally if an input file is empty.
+        json.JSONDecodeError: Handled internally if input JSON is malformed.
+        OSError: Handled internally on system I/O errors.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--function_definition",
-        default="data/input/function_definition.json"
+        "--functions_definition",
+        "-functions_definition",
+        default="data/input/functions_definition.json"
     )
     parser.add_argument(
         "--input",
+        "-input",
         default="data/input/function_calling_tests.json"
     )
     parser.add_argument(
         "--output",
+        "-output",
         default="data/output/function_calling_results.json"
     )
     args = parser.parse_args()

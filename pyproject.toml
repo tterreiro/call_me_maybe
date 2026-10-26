@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Introduction to function calling in LLM's"
 requires-python = ">=3.10"
 authors = [
-  {name="fandre-m", email="fandre-m@student.42porto.com"},
+  {name="hde-andr", email="hde-andrr@student.42porto.com"},
 ]
 dependencies = [
   "flake8",

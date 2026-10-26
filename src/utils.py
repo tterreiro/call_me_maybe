@@ -4,9 +4,19 @@ from typing import Union, cast
 
 
 class PromptBuilder:
-    """Makes the prompt to constrain the function call generation"""
+    """Helper class to construct system prompts guiding LLM tool choice."""
     def make_prompt(self, functions: list[Function], user_prompt: str) -> str:
-        """Makes a prompt containing available functuins and user request"""
+        """
+        Construct a formatted system prompt with
+        function schemas and examples.
+
+        Args:
+            functions: List of Function schemas
+                       available to include in prompt.
+            user_prompt: Raw query string submitted by user.
+        Returns:
+            Formatted full prompt string suitable for model encoding.
+        """
         prompt = [
             'You are a function calling tool.\n',
             'Produce ONLY valid JSON.',
@@ -35,21 +45,33 @@ class PromptBuilder:
 
 
 def to_type(p_type: str, value: str) -> Union[str, int, float, bool]:
-    """Converts a string to the requested parameter type"""
+    """
+    Convert a raw generated string into a target primitive Python data type.
+
+    Args:
+        p_type: Desired output type
+                ('string', 'number', 'integer', or 'boolean').
+        value: String value to parse and convert.
+
+    Returns:
+        Converted value as primitive Python type (str, int, float, or bool).
+    Raises:
+        ValueError: If value cannot be parsed or cast to target p_type.
+    """
     try:
-        if p_type.lower == "string":
+        if p_type.lower() == "string":
             try:
                 return cast(str, json.loads(f'"{value}"'))
             except json.JSONDecodeError:
                 pass
-        if p_type.lower == "number":
+        if p_type.lower() == "number":
             return float(value)
-        if p_type.lower == "integer":
+        if p_type.lower() == "integer":
             return int(value)
-        if p_type.lower == "boolean":
-            if value.lower == 'true':
+        if p_type.lower() == "boolean":
+            if value.lower() == 'true':
                 return True
-            if value.lower == 'false':
+            if value.lower() == 'false':
                 return False
             raise ValueError(f"Invalid boolean: {value!r}")
         return str(value)
@@ -58,11 +80,24 @@ def to_type(p_type: str, value: str) -> Union[str, int, float, bool]:
 
 
 class GenerationLogger:
-    """Logs prompts and generated tokens during decoding"""
+    """
+    Streams generated prompt text and
+    token output directly to standard output.
+    """
     def token(self, text: str) -> None:
-        """logs generated token"""
+        """
+        Stream generated text token immediately to stdout.
+
+        Args:
+            text: Token string content to print.
+        """
         print(text, end="", flush=True)
 
     def prompt(self, text: str) -> None:
-        """logs user prompt"""
+        """
+        Print the current input prompt heading to stdout.
+
+        Args:
+            text: Raw prompt string.
+        """
         print(f"\nPrompt: {text}")

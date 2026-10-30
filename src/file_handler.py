@@ -161,11 +161,13 @@ class FileLoader:
                 self.func_definitions.append(Function.model_validate(func))
             except ValidationError as e:
                 print(f"Skipping Function #{i}: {e.errors()[0]['msg']}\n")
-            none_func = Function(
-                name='fn_none_found',
-                description="Function selected when no option is available",
-                parameters={},
-                returns={"type": "none"}
+        none_func = Function(
+            name='fn_none_found',
+            description="Function selected when no option is available",
+            parameters={},
+            returns={
+                "type": "none"
+            }
             )
         self.func_definitions.append(Function.model_validate(none_func))
 

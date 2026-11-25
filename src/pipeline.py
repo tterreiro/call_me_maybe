@@ -1,4 +1,4 @@
-from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model  # type: ignore
 from typing import Union
 from .file_handler import Function, CallResult
 from .utils import PromptBuilder, GenerationLogger, to_type
@@ -400,7 +400,8 @@ class FunctionCallGenerator:
             Decoded string representing chosen function name.
         """
         func_name_ids = self.decoder.generate_from_trie(self.func_trie)
-        return self.llm.decode(func_name_ids)
+        name: str = self.llm.decode(func_name_ids)
+        return name
 
     def _gen_param_name(self) -> str:
         """
@@ -413,7 +414,8 @@ class FunctionCallGenerator:
         param_trie = self._get_param_trie(self.curr_func.name, next_param)
         param_name_ids = self.decoder.generate_from_trie(param_trie)
         self.remaining_params.remove(next_param)
-        return self.llm.decode(param_name_ids)
+        name: str = self.llm.decode(param_name_ids)
+        return name
 
     def _gen_param_value(self, p_type: str) -> str:
         """
@@ -427,7 +429,8 @@ class FunctionCallGenerator:
         """
         if p_type == "boolean":
             param_val_ids = self.decoder.generate_from_trie(self.bool_trie)
-            return self.llm.decode(param_val_ids)
+            value: str = self.llm.decode(param_val_ids)
+            return value
         else:
             allowed, stop_chars = self.constraints.gen_configs[p_type]
 
@@ -435,7 +438,8 @@ class FunctionCallGenerator:
                 allowed,
                 stop_chars
             )
-            return self.llm.decode(param_val_ids)
+            val: str = self.llm.decode(param_val_ids)
+            return val
 
     def run(self, user_prompt: str) -> CallResult:
         """
@@ -449,7 +453,7 @@ class FunctionCallGenerator:
             selected function and parameter arguments.
         """
         prompter = PromptBuilder()
-        prompt = prompter. make_prompt(self.functions, user_prompt)
+        prompt = prompter.make_prompt(self.functions, user_prompt)
         self.decoder.input_ids = self.llm.encode(prompt)[0].tolist()
         self.logger.prompt(user_prompt)
         self.decoder.inject('{\n  "name": "')

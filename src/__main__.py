@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import argparse
-from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model  # type: ignore
 from src import (
     FileLoader, FunctionCallGenerator, CallResult, EmptyDataError
     )
 import json
+from time import perf_counter
 
 
 def main() -> None:
@@ -17,6 +18,7 @@ def main() -> None:
         json.JSONDecodeError: Handled internally if input JSON is malformed.
         OSError: Handled internally on system I/O errors.
     """
+    start_time = perf_counter()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--functions_definition",
@@ -31,7 +33,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         "-output",
-        default="data/output/function_calling_results.json"
+        default="data/output/function_calls.json"
     )
     args = parser.parse_args()
 
@@ -65,6 +67,9 @@ def main() -> None:
     except OSError as e:
         print(f"Error: could not write to {args.output} - {e}")
         return
+    runtime = perf_counter() - start_time
+    minutes, seconds = divmod(runtime, 60)
+    print(f"Runtime - {int(minutes)} minutes and {int(seconds)} seconds")
 
 
 if __name__ == "__main__":

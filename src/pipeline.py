@@ -144,10 +144,10 @@ class VocabConstraints:
             llm, to_forbid="`#$"
         )
         self.num_allowed: set[int] = self._make_mask(
-            llm, to_allow=",\n0123456789-"
+            llm, to_allow=",\n0123456789-."
         )
         self.int_allowed: set[int] = self._make_mask(
-            llm, to_allow=",\n0123456789-."
+            llm, to_allow=",\n0123456789-"
         )
         self.gen_configs: dict[str, tuple[set[int], tuple[str, ...]]] = {
             "string": (self.str_allowed, ('"',)),

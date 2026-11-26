@@ -23,12 +23,12 @@ def main() -> None:
     parser.add_argument(
         "--functions_definition",
         "-functions_definition",
-        default="data/input/functions_definition.json"
+        default="data/input/functions_definitionmoulinette.json"
     )
     parser.add_argument(
         "--input",
         "-input",
-        default="data/input/function_calling_tests.json"
+        default="data/input/function_calling_testsmoulinette.json"
     )
     parser.add_argument(
         "--output",

@@ -482,7 +482,13 @@ class FunctionCallGenerator:
             is_num = p_type in {'number', 'integer'}
             self.decoder.inject('": ' if is_num else '": "')
 
+            has_leading_slash = False
+            if p_type == "string" and " /" is user_prompt:
+                self.decoder.inject('/')
+                has_leading_slash = True
             p_value = self._gen_param_value(p_type)
+            if has_leading_slash:
+                p_value = f"/{p_value}"
             converted_val: str | int | float | bool = to_type(p_type, p_value)
             params[p_name] = converted_val
 
